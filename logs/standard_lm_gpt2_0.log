@@ -1,0 +1,52 @@
+2024-02-14 17:36:04,316 INFO     Namespace(batch_size=10, directory='standard_dataset/', add_eos=False, shuffle=True, architecture='GPT2', n_embd=12, n_positions=50, n_head=4, n_layer=2, pretrained_name=None, pretrained_vocab_size=None, n_epochs=1, eval_every=10, weight_decay=0.1, learning_rate=0.0005, lr_scheduler_type='cosine', warmup_proportion=0.05, warmup_steps=None, model_name='standard_lm_gpt2_0', weight_dir='weights/', log_dir='logs/', eval=False)
+2024-02-14 17:36:04,372 INFO     Vocab size: 5
+2024-02-14 17:36:04,684 INFO     Model size: 0.0M parameters
+2024-02-14 17:36:05,792 INFO     Validation loss: 1.6987791061401367
+2024-02-14 17:36:05,792 INFO     Validation perplexity: 5.46726836099087
+2024-02-14 17:36:05,792 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:05,796 INFO     Training step 0 out of 98; Epoch 0; Learning rate: 0.0
+2024-02-14 17:36:06,206 INFO     Validation loss: 1.6100720167160034
+2024-02-14 17:36:06,206 INFO     Validation perplexity: 5.003171526842621
+2024-02-14 17:36:06,206 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:06,208 INFO     Training step 10 out of 98; Epoch 0; Learning rate: 0.0004964424488287009
+2024-02-14 17:36:06,363 INFO     Validation loss: 1.5331458648045857
+2024-02-14 17:36:06,363 INFO     Validation perplexity: 4.632727858021664
+2024-02-14 17:36:06,363 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:06,365 INFO     Training step 20 out of 98; Epoch 0; Learning rate: 0.00046858665403614556
+2024-02-14 17:36:06,554 INFO     Validation loss: 1.4687171876430511
+2024-02-14 17:36:06,554 INFO     Validation perplexity: 4.3436594655178675
+2024-02-14 17:36:06,554 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:06,556 INFO     Training step 30 out of 98; Epoch 0; Learning rate: 0.0004160236506918098
+2024-02-14 17:36:06,707 INFO     Validation loss: 1.4141376217206318
+2024-02-14 17:36:06,707 INFO     Validation perplexity: 4.11293802772564
+2024-02-14 17:36:06,707 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:06,709 INFO     Training step 40 out of 98; Epoch 0; Learning rate: 0.000344694721402644
+2024-02-14 17:36:06,876 INFO     Validation loss: 1.3717117607593536
+2024-02-14 17:36:06,876 INFO     Validation perplexity: 3.9420928431909474
+2024-02-14 17:36:06,876 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:06,878 INFO     Training step 50 out of 98; Epoch 0; Learning rate: 0.0002626622922096782
+2024-02-14 17:36:07,041 INFO     Validation loss: 1.3417303760846455
+2024-02-14 17:36:07,041 INFO     Validation perplexity: 3.825657607706168
+2024-02-14 17:36:07,041 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:07,043 INFO     Training step 60 out of 98; Epoch 0; Learning rate: 0.00017919862332942398
+2024-02-14 17:36:07,179 INFO     Validation loss: 1.323024054368337
+2024-02-14 17:36:07,179 INFO     Validation perplexity: 3.7547588209123086
+2024-02-14 17:36:07,180 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:07,182 INFO     Training step 70 out of 98; Epoch 0; Learning rate: 0.00010373775035117305
+2024-02-14 17:36:07,341 INFO     Validation loss: 1.3134166896343231
+2024-02-14 17:36:07,341 INFO     Validation perplexity: 3.7188582146801017
+2024-02-14 17:36:07,341 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:07,343 INFO     Training step 80 out of 98; Epoch 0; Learning rate: 4.4809139698180985e-05
+2024-02-14 17:36:07,514 INFO     Validation loss: 1.3100827236970265
+2024-02-14 17:36:07,515 INFO     Validation perplexity: 3.7064803132829076
+2024-02-14 17:36:07,515 INFO     Saving model checkpoint to weights/
+2024-02-14 17:36:07,518 INFO     Training step 90 out of 98; Epoch 0; Learning rate: 9.073589027514788e-06
+2024-02-14 17:36:07,602 INFO     Loading model checkpoint from weights/standard_lm_gpt2_0
+2024-02-14 17:36:07,666 INFO     Pure sampling:
+2024-02-14 17:36:07,666 INFO     1 1 0 1 0 0 1 0 1 0 1 1 0 1
+2024-02-14 17:36:07,703 INFO     Top-40:
+2024-02-14 17:36:07,703 INFO     1 0 1 1 0 0 1 0 1 1 0 0 1 1 0 1 0 1 1
+2024-02-14 17:36:07,756 INFO     Validation loss: 1.3100827236970265
+2024-02-14 17:36:07,756 INFO     Validation perplexity: 3.7064803132829076
+2024-02-14 17:36:07,857 INFO     Validation (strided) loss: 1.26419038357942
+2024-02-14 17:36:07,857 INFO     Validation (strided) perplexity: 3.540225350947871
