@@ -12,7 +12,7 @@ import higher
 
 from itertools import chain
 
-from transformers import PreTrainedModel, GPT2LMHeadModel, TransfoXLLMHeadModel
+from transformers import PreTrainedModel, GPT2LMHeadModel, TransfoXLLMHeadModel,AutoConfig, BertModel, BertConfig, BertForMaskedLM
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -182,6 +182,8 @@ class Trainer:
 
         if isinstance(self.model, GPT2LMHeadModel):
             self.model = GPT2LMHeadModel.from_pretrained(os.path.join(self.save_dir, self.model_name)).to(device)
+        elif isinstance(self.model, BertForMaskedLM):
+            self.model = BertForMaskedLM.from_pretrained(os.path.join(self.save_dir, self.model_name)).to(device)
         else:
             self.model.load_state_dict(torch.load(os.path.join(self.save_dir, self.model_name + ".weights")))
 

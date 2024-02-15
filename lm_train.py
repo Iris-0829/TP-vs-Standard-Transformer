@@ -6,7 +6,7 @@ import logging
 
 import torch
 
-from transformers import GPT2LMHeadModel, TransfoXLLMHeadModel, AutoConfig
+from transformers import GPT2LMHeadModel, TransfoXLLMHeadModel, AutoConfig, BertModel, BertConfig, BertForMaskedLM
 
 from training import *
 from dataloading import *
@@ -100,6 +100,17 @@ if args.architecture == "GPT2":
 elif args.architecture == "LSTM":
     model = RNNLM(rnn_type="LSTM", vocab_size=vocab_size, emb_size=args.n_embd, hidden_size=args.n_embd, n_layers=args.n_layer, dropout=0.1, tie_weights=True).to(device)
 
+elif args.architecture == "BERT":
+    config = BertConfig(
+        vocab_size=vocab_size,
+        hidden_size=args.n_embd,
+        num_hidden_layers=args.n_layer,
+        num_attention_heads=args.n_head,
+        intermediate_size=args.n_embd * 4,  # 4x hidden_size
+        max_position_embeddings=args.n_positions,
+    )
+
+    model = BertForMaskedLM(config).to(device)
 else:
     logging.info("Architecture not recognized")
 
