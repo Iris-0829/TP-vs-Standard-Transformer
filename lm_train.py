@@ -134,13 +134,13 @@ parser.add_argument('-d_r', type=int,
 
 args = parser.parse_args()
 log = setup_logger(args.log_folder)
-module = DataLoader(module_name=args.module_name,
-                    train_bs=args.batch_size,
-                    eval_bs=args.batch_size,
-                    device=device,
-                    log=log)
+# module = DataLoader(module_name=args.module_name,
+#                     train_bs=args.batch_size,
+#                     eval_bs=args.batch_size,
+#                     device=device,
+#                     log=log)
 
-args.PAD = module.source.vocab.stoi['<pad>']
+# args.PAD = module.source.vocab.stoi['<pad>']
 
 if not args.eval:
     model_name = args.model_name
@@ -200,8 +200,11 @@ elif args.architecture == "BERT":
     model = BertForMaskedLM(config).to(device)
 
 elif args.architecture == "TP":
+    args.input_dim = 256  # placeholder for now
+    args.PAD = 0
     imp_module = importlib.import_module("tp-transformer")
     model = imp_module.build_transformer(params=args, pad_idx=args.PAD).to(device)
+
 else:
     logging.info("Architecture not recognized")
 

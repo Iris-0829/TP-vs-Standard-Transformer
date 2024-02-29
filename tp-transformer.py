@@ -296,14 +296,14 @@ class Decoder(nn.Module):
 
     self.layers = nn.ModuleList([DecoderLayer(p) for _ in range(p.n_L)])
 
-  def forward(self, trg, src, trg_mask, src_mask):
+  def forward(self, trg, trg_mask):
     # trg = [batch_size, trg_seq_size, hid_dim]
     # src = [batch_size, src_seq_size, hid_dim]
     # trg_mask = [batch_size, trg_seq_size]
     # src_mask = [batch_size, src_seq_size]
 
     for layer in self.layers:
-      trg = layer(trg, src, trg_mask, src_mask)
+      trg = layer(trg, trg_mask)
 
     return trg
 
@@ -331,7 +331,7 @@ class DecoderLayer(nn.Module):
     self.layernorm4 = nn.LayerNorm(d_h)
 
 
-  def forward(self, trg, src, trg_mask, src_mask):
+  def forward(self, trg, trg_mask):
     # trg = [batch_size, trg_seq_size, hid_dim]
     # src = [batch_size, src_seq_size, hid_dim]
     # trg_mask = [batch_size, trg_seq_size]
@@ -345,7 +345,7 @@ class DecoderLayer(nn.Module):
 
     # encoder attention
     z = self.layernorm2(trg)
-    z = self.encAttn(z, src, src, src_mask)
+    # z = self.encAttn(z, src, src, src_mask)
     z = self.dropout2(z)
     trg = trg + z
 
@@ -363,16 +363,16 @@ class Seq2Seq(nn.Module):
     super().__init__()
 
     self.embedding = embedding
-    self.encoder = encoder
+    # self.encoder = encoder
     self.decoder = decoder
     self.pad_idx = pad_idx
     self.p = p
 
-  def make_masks(self, src, trg):
+  def make_masks(self, trg):
     # src = [batch_size, src_seq_size]
     # trg = [batch_size, trg_seq_size]
 
-    src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
+    # src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
     trg_pad_mask = (trg != self.pad_idx).unsqueeze(1).unsqueeze(3)
     # trg_mask = [batch_size, 1, trg_seq_size, 1]
     trg_len = trg.shape[1]
@@ -384,29 +384,34 @@ class Seq2Seq(nn.Module):
 
     # src_mask = [batch_size, 1, 1, pad_seq]
     # trg_mask = [batch_size, 1, pad_seq, past_seq]
-    return src_mask.to(src.device), trg_mask.to(src.device)
+    return trg_mask
 
-  def forward(self, src, trg):
+  def forward(self, trg):
     # src = [batch_size, src_seq_size]
     # trg = [batch_size, trg_seq_size]
 
-    src_mask, trg_mask = self.make_masks(src, trg)
+    # src_mask, trg_mask = self.make_masks(src, trg)
     # src_mask = [batch_size, 1, 1, pad_seq]
     # trg_mask = [batch_size, 1, pad_seq, past_seq]
 
-    src = self.embedding(src)
-    trg = self.embedding(trg)
+    # src = self.embedding(src)
+    # trg = self.embedding(trg)
     # src = [batch_size, src_seq_size, hid_dim]
 
-    enc_src = self.encoder(src, src_mask)
+    # enc_src = self.encoder(src, src_mask)
     # enc_src = [batch_size, src_seq_size, hid_dim]
 
-    out = self.decoder(trg, enc_src, trg_mask, src_mask)
+    # out = self.decoder(trg, enc_src, trg_mask, src_mask)
     # out = [batch_size, trg_seq_size, d_x]
 
-    logits = self.embedding.transpose_forward(out)
+    # logits = self.embedding.transpose_forward(out)
     # logits = [batch_size, trg_seq_size, d_vocab]
 
+    # return logits
+    trg_mask = self.make_masks(trg)
+    trg = self.embedding(trg)
+    out = self.decoder(trg, trg_mask)
+    logits = self.embedding.transpose_forward(out)
     return logits
 
   def make_src_mask(self, src):
@@ -434,7 +439,7 @@ class Seq2Seq(nn.Module):
     src_emb = model.embedding(src)
 
     # run encoder
-    enc_src = model.encoder(src_emb, src_mask)
+    # enc_src = model.encoder(src_emb, src_mask)
     trg = torch.ones(src.shape[0], 1).fill_(sos_idx).type_as(src).to(device)
 
     done = torch.zeros(src.shape[0]).type(torch.uint8).to(device)
@@ -442,8 +447,7 @@ class Seq2Seq(nn.Module):
       trg_emb = model.embedding(trg)
       trg_mask = model.make_trg_mask(trg)
       # run decoder
-      output = model.decoder(src=enc_src, trg=trg_emb,
-                             src_mask=src_mask, trg_mask=trg_mask)
+      output = model.decoder(trg=trg_emb, trg_mask=trg_mask)
       logits = model.embedding.transpose_forward(output)
       pred = torch.argmax(logits[:,[-1],:], dim=-1)
       trg = torch.cat([trg, pred], dim=1)
@@ -455,3 +459,150 @@ class Seq2Seq(nn.Module):
         break
 
     return trg
+
+
+if __name__ == "__main__":
+  import math
+  import os
+  import logging
+
+  import torch
+
+  from transformers import GPT2LMHeadModel, TransfoXLLMHeadModel, AutoConfig, BertModel, BertConfig, BertForMaskedLM
+
+  from training import *
+  from dataloading import *
+  from models import *
+
+  import argparse
+  import importlib
+  from utils.data_loader import *
+  from utils.lib import setup_logger
+
+  if torch.cuda.is_available():
+    device = torch.device('cuda')
+  else:
+    device = torch.device('cpu')
+
+  parser = argparse.ArgumentParser()
+
+  # Corpus arguments
+  parser.add_argument("--batch_size", help="Sequences per batch", type=int, default=128)
+  parser.add_argument("--directory", help="Directory where the datasets are found", type=str,
+                      default="CHILDES_final/pretraining/")
+  parser.add_argument("--add_eos", help="Add EOS at the end of each line", action='store_true')
+  parser.add_argument("--shuffle", help="Shuffle batches within buffer", action='store_true')
+
+  # Architecture arguments
+  parser.add_argument("--architecture", help="Type of architecture. Options: GPT2, LSTM", type=str, default="GPT2")
+  parser.add_argument("--n_embd", help="Embedding size", type=int, default=768)
+  parser.add_argument("--n_positions", help="Max context length the model can take", type=int, default=128)
+  parser.add_argument("--n_head", help="Number of attention heads", type=int, default=12)
+  parser.add_argument("--n_layer", help="Number of layers", type=int, default=12)
+  parser.add_argument("--pretrained_name", help="Name for a pretrained model to load", type=str, default=None)
+  parser.add_argument("--pretrained_vocab_size", help="Vocab size in pretrained model", type=int, default=None)
+
+  # Training arguments
+  parser.add_argument("--n_epochs", help="Number of training epochs", type=int, default=10)
+  parser.add_argument("--eval_every", help="Number of training steps to go between evaluations", type=int, default=100)
+  parser.add_argument("--weight_decay", help="Weight decay", type=float, default=1e-1)
+  parser.add_argument("--learning_rate", help="Learning rate", type=float, default=5e-4)
+  parser.add_argument("--lr_scheduler_type", help="Learning rate scheduler type (cosine or constant)", type=str,
+                      default="cosine")
+  parser.add_argument("--warmup_proportion", help="Proportion of total steps that are warmup", type=float, default=0.05)
+  parser.add_argument("--warmup_steps", help="Number of steps to warm up for", type=int, default=None)
+
+  # Saving arguments
+  parser.add_argument("--model_name", help="Model name prefix", type=str, default=None)
+  parser.add_argument("--weight_dir", help="Directory to save model weights in", type=str, default="weights/")
+  parser.add_argument("--log_dir", help="Directory to save logs in", type=str, default="logs/")
+
+  parser.add_argument("--eval", help="Just evaluating, no training", action='store_true')
+
+  # TP
+  parser.add_argument('--seed', type=int,
+                      default=0xBADB1A5, metavar='SEED',
+                      help='random seed (default: 0xBADB1A5)')
+  parser.add_argument('--module_name', type=str,
+                      default="numbers__place_value", metavar='NAME',
+                      help='module name (default: numbers__place_value)')
+  parser.add_argument('--load_model', type=str, default="", metavar='S',
+                      help='Model to load (default: "")')
+  parser.add_argument('--eval_mode', action='store_true',
+                      help="Don't write logs. (Default: False)")
+  parser.add_argument('--n_steps', type=int,
+                      default=10000, metavar='N',
+                      help='maximum number of steps to train (default: 10000)')
+  parser.add_argument('--max_strikes', type=int,
+                      default=1000, metavar='N',
+                      help='number of steps without eval loss improvement '
+                           'before exiting (default: 1000)')
+  parser.add_argument('--log_every', type=int,
+                      default=50, metavar='N',
+                      help='after how many steps to log to terminal '
+                           'and tensorboard (default: 50)')
+  parser.add_argument('--full_loader', action='store_true',
+                      help="Use full data loader instead of JIT loader "
+                           "(default: False)")
+  parser.add_argument('--force_remove', action='store_true',
+                      help="Removes pre-existing log folders (default: False)")
+  parser.add_argument('--force_reload', action='store_true',
+                      help="Load previous model if available. (Default: False)")
+  parser.add_argument('--no_train', action='store_true',
+                      help="Don't start training. (Default: False)")
+  parser.add_argument('--log_folder', type=str, default="log", metavar='S',
+                      help='Log folder (default: "")')
+  parser.add_argument('-s', '--log_suffix', type=str,
+                      default="", metavar='S',
+                      help='Additional log suffix (default: "")')
+  # optimizer parameters
+  parser.add_argument('-opt', '--optimizer', type=str,
+                      default="Adam", metavar='S',
+                      help='the sgd optimizer (default: "Adam")')
+  parser.add_argument('--beta1', type=float,
+                      default=0.9, metavar='F',
+                      help='adam beta1 (default: 0.9)')
+  parser.add_argument('--beta2', type=float,
+                      default=0.995, metavar='F',
+                      help='adam beta2 (default: 0.995)')
+  parser.add_argument('-bs', type=int,
+                      default=256, metavar='N',
+                      help='batch size for train and test (default: 256)')
+  parser.add_argument('--max_abs_grad_norm', type=float,
+                      default=0.1, metavar='F',
+                      help='max absolute gradient norm clip (default: 0.1)')
+  parser.add_argument('--grad_accum_steps', type=int,
+                      default=1, metavar='N',
+                      help='gradient accumulation steps (default: 1)')
+  # model parameters
+  parser.add_argument('--dropout', type=float,
+                      default=0.0, metavar='PROB',
+                      help='dropout (default: 0.0)')
+  parser.add_argument('--hidden', type=int,
+                      default=512, metavar='N',
+                      help='hidden size (default: 512)')
+  parser.add_argument('-l', '--n_layers', type=int,
+                      default=6, metavar='N',
+                      help='number of transformer layers (default: 6)')
+  parser.add_argument('-nh', '--n_heads', type=int,
+                      default=8, metavar='N',
+                      help='number of attention heads (default: 8)')
+  parser.add_argument('-f', '--filter', type=int,
+                      default=2048, metavar='N',
+                      help='filter size (default: 2048)')
+  parser.add_argument('-d_r', type=int,
+                      default=0, metavar='N',
+                      help='role size (default: 0)')
+
+  args = parser.parse_args()
+  log = setup_logger(args.log_folder)
+  # module = DataLoader(module_name=args.module_name,
+  #                     train_bs=args.batch_size,
+  #                     eval_bs=args.batch_size,
+  #                     device=device,
+  #                     log=log)
+  args.input_dim = 256
+  args.PAD = 0
+  model = build_transformer(params=args, pad_idx=args.PAD)
+  model_size = sum(t.numel() for t in model.parameters())
+  print(f"Model size: {model_size / 1000 ** 2:.1f}M parameters")
