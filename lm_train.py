@@ -13,6 +13,9 @@ from dataloading import *
 from models import *
 
 import argparse
+import importlib
+from utils.data_loader import *
+from utils.lib import setup_logger
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -53,7 +56,91 @@ parser.add_argument("--log_dir", help="Directory to save logs in", type=str, def
 
 parser.add_argument("--eval", help="Just evaluating, no training", action='store_true')
 
+
+# TP
+parser.add_argument('--seed', type=int,
+                    default=0xBADB1A5, metavar='SEED',
+                    help='random seed (default: 0xBADB1A5)')
+parser.add_argument('--module_name', type=str,
+                    default="numbers__place_value", metavar='NAME',
+                    help='module name (default: numbers__place_value)')
+parser.add_argument('--load_model', type=str, default="", metavar='S',
+                    help='Model to load (default: "")')
+parser.add_argument('--eval_mode', action='store_true',
+                    help="Don't write logs. (Default: False)")
+parser.add_argument('--n_steps', type=int,
+                    default=10000, metavar='N',
+                    help='maximum number of steps to train (default: 10000)')
+parser.add_argument('--max_strikes', type=int,
+                    default=1000, metavar='N',
+                    help='number of steps without eval loss improvement '
+                         'before exiting (default: 1000)')
+parser.add_argument('--log_every', type=int,
+                    default=50, metavar='N',
+                    help='after how many steps to log to terminal '
+                         'and tensorboard (default: 50)')
+parser.add_argument('--full_loader', action='store_true',
+                    help="Use full data loader instead of JIT loader "
+                         "(default: False)")
+parser.add_argument('--force_remove', action='store_true',
+                    help="Removes pre-existing log folders (default: False)")
+parser.add_argument('--force_reload', action='store_true',
+                    help="Load previous model if available. (Default: False)")
+parser.add_argument('--no_train', action='store_true',
+                    help="Don't start training. (Default: False)")
+parser.add_argument('--log_folder', type=str, default="log", metavar='S',
+                    help='Log folder (default: "")')
+parser.add_argument('-s', '--log_suffix', type=str,
+                    default="", metavar='S',
+                    help='Additional log suffix (default: "")')
+# optimizer parameters
+parser.add_argument('-opt', '--optimizer', type=str,
+                    default="Adam", metavar='S',
+                    help='the sgd optimizer (default: "Adam")')
+parser.add_argument('--beta1', type=float,
+                    default=0.9, metavar='F',
+                    help='adam beta1 (default: 0.9)')
+parser.add_argument('--beta2', type=float,
+                    default=0.995, metavar='F',
+                    help='adam beta2 (default: 0.995)')
+parser.add_argument('-bs', type=int,
+                    default=256, metavar='N',
+                    help='batch size for train and test (default: 256)')
+parser.add_argument('--max_abs_grad_norm', type=float,
+                    default=0.1, metavar='F',
+                    help='max absolute gradient norm clip (default: 0.1)')
+parser.add_argument('--grad_accum_steps', type=int,
+                    default=1, metavar='N',
+                    help='gradient accumulation steps (default: 1)')
+# model parameters
+parser.add_argument('--dropout', type=float,
+                    default=0.0, metavar='PROB',
+                    help='dropout (default: 0.0)')
+parser.add_argument('--hidden', type=int,
+                    default=512, metavar='N',
+                    help='hidden size (default: 512)')
+parser.add_argument('-l', '--n_layers', type=int,
+                    default=6, metavar='N',
+                    help='number of transformer layers (default: 6)')
+parser.add_argument('-nh', '--n_heads', type=int,
+                    default=8, metavar='N',
+                    help='number of attention heads (default: 8)')
+parser.add_argument('-f', '--filter', type=int,
+                    default=2048, metavar='N',
+                    help='filter size (default: 2048)')
+parser.add_argument('-d_r', type=int,
+                    default=0, metavar='N',
+                    help='role size (default: 0)')
+
 args = parser.parse_args()
+log = setup_logger(args.log_folder)
+module = DataLoader(module_name=args.module_name,
+                    train_bs=args.batch_size,
+                    eval_bs=args.batch_size,
+                    device=device,
+                    log=log)
+
+args.PAD = module.source.vocab.stoi['<pad>']
 
 if not args.eval:
     model_name = args.model_name
@@ -111,6 +198,10 @@ elif args.architecture == "BERT":
     )
 
     model = BertForMaskedLM(config).to(device)
+
+elif args.architecture == "TP":
+    imp_module = importlib.import_module("tp-transformer")
+    model = imp_module.build_transformer(params=args, pad_idx=args.PAD).to(device)
 else:
     logging.info("Architecture not recognized")
 
