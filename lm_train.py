@@ -200,10 +200,7 @@ elif args.architecture == "BERT":
     model = BertForMaskedLM(config).to(device)
 
 elif args.architecture == "TP":
-    args.input_dim = 256  # placeholder for now
-    args.PAD = 0
-    imp_module = importlib.import_module("tp-transformer")
-    model = imp_module.build_transformer(params=args, pad_idx=args.PAD).to(device)
+    model = TPDecoder(vocab_size=vocab_size, hidden_size=args.n_embd, num_layers=args.n_layer, num_heads=args.n_head, max_length=min(args.n_positions-10,100), dropout=0.1).to(device)
 
 else:
     logging.info("Architecture not recognized")

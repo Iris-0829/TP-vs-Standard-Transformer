@@ -102,7 +102,13 @@ class Trainer:
     # Compute loss on batch "inputs"
     def compute_loss(self, model, inputs):
         outputs = model(**inputs)
-        return outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+        if isinstance(outputs, dict):
+            return outputs["loss"]
+        elif isinstance(outputs, torch.Tensor):
+            return outputs
+        else:
+            raise ValueError("Unexpected output type from the model.")
+        # return outputs["loss"] if isinstance(outputs, dict) else outputs[0]
         
     # Move all inputs to the correct
     # device (CPU/GPU)
