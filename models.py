@@ -85,7 +85,6 @@ class RNNLM(nn.Module):
 
         return {"logits" : logits, "loss" : loss}
 
-
     def init_hidden(self, bsz):
         weight = next(self.parameters())
         if self.rnn_type == 'LSTM':
@@ -116,7 +115,6 @@ class RNNLM(nn.Module):
             pred[done != 0] = pad_token_id
 
 
-
 class TPDecoder(nn.Module):
     def __init__(self, vocab_size, hidden_size, num_layers, num_heads, max_length, dropout=0.1):
         super(TPDecoder, self).__init__()
@@ -126,7 +124,6 @@ class TPDecoder(nn.Module):
         self.num_heads = num_heads
         self.max_length = max_length
 
-        # self.word_embeddings = EmbeddingMultilinearSinusoidal(vocab_size, hidden_size, dropout, max_length)
         self.word_embeddings = EmbeddingMultilinearSinusoidal(vocab_size, hidden_size, dropout)
         self.layers = nn.ModuleList([TPDecoderLayer(hidden_size, num_heads, dropout) for _ in range(num_layers)])
         self.norm = nn.LayerNorm(hidden_size)
@@ -158,49 +155,6 @@ class TPDecoder(nn.Module):
         else:
             return output
 
-    # def forward(self, input_ids, labels=None):
-    #     # input_ids: [batch_size, seq_len]
-    #
-    #     # Embedding
-    #     embedded = self.word_embeddings(input_ids)
-    #
-    #     # Create attention mask
-    #     attn_mask = self.create_attn_mask(input_ids)
-    #
-    #     # Pass through decoder layers
-    #     for layer in self.layers:
-    #         embedded = layer(embedded, attn_mask)
-    #
-    #     # Projection to output vocabulary
-    #     output = self.output_projection(self.norm(embedded))
-    #
-    #     if labels is not None:
-    #         # Compute the loss
-    #         loss_fct = nn.CrossEntropyLoss()
-    #         shift_logits = output[..., :-1, :].contiguous()
-    #         shift_labels = labels[..., 1:].contiguous()
-    #         loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-    #         return output, loss
-    #     else:
-    #         return output
-
-    # def forward(self, input_ids):
-    #     # input_ids: [batch_size, seq_len]
-    #
-    #     # Embedding
-    #     embedded = self.word_embeddings(input_ids)
-    #
-    #     # Create attention mask
-    #     attn_mask = self.create_attn_mask(input_ids)
-    #
-    #     # Pass through decoder layers
-    #     for layer in self.layers:
-    #         embedded = layer(embedded, attn_mask)
-    #
-    #     # Projection to output vocabulary
-    #     output = self.output_projection(self.norm(embedded))
-    #
-    #     return output
 
     def create_attn_mask(self, input_ids):
         # input_ids: [batch_size, seq_len]
@@ -221,9 +175,6 @@ class TPDecoder(nn.Module):
 
                 # Get the last token logits
                 next_token_logits = logits[:, -1, :]
-
-                # Apply temperature scaling
-                next_token_logits = next_token_logits
 
                 # Apply top-k and top-p filtering
                 if top_k > 0:
@@ -368,12 +319,3 @@ class PositionwiseFeedforward(nn.Module):
         x = self.dropout(x)
         x = self.linear2(x)
         return x
-
-
-
-
-
-
-
-
-
