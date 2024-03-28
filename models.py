@@ -146,7 +146,6 @@ class TPDecoder(nn.Module):
         output = self.output_projection(self.norm(embedded))
 
         if labels is not None:
-            # Compute the loss
             loss_fct = nn.CrossEntropyLoss()
             shift_logits = output[..., :-1, :].contiguous()
             shift_labels = labels[..., 1:].contiguous()
@@ -164,12 +163,9 @@ class TPDecoder(nn.Module):
 
     def generate(self, input_ids, do_sample=True, max_length=500, top_p=1.0, top_k=0, early_stopping=True, pad_token_id=None, eos_token_id=3):
         with torch.no_grad():
-            batch_size = input_ids.size(0)
             generated_ids = input_ids
 
             for _ in range(max_length - input_ids.size(1)):
-                attn_mask = self.create_attn_mask(generated_ids)
-
                 # Forward pass
                 logits = self.forward(generated_ids)
 
@@ -218,9 +214,6 @@ class TPDecoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, attn_mask):
-        # x: [batch_size, seq_len, hidden_size]
-        # attn_mask: [batch_size, 1, seq_len, seq_len]
-
         # Self-attention with Transformer Product
         x = self.norm1(x + self.dropout(self.self_attn(x, x, x, attn_mask)))
 
@@ -230,7 +223,7 @@ class TPDecoderLayer(nn.Module):
         return x
 
 
-# Transformer Product Self-Attention (adapted from the provided code)
+# Transformer Product Self-Attention
 class SelfAttention(nn.Module):
     def __init__(self, hidden_size, num_heads, dropout):
         super().__init__()
