@@ -344,7 +344,7 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.max_length = max_length
 
-        self.word_embeddings = EmbeddingMultilinearSinusoidal(vocab_size, hidden_size, dropout)
+        self.word_embeddings = EmbeddingMultilinearSinusoidal(vocab_size, hidden_size, dropout, max_length=200)
         self.layers = nn.ModuleList([TransformerDecoderLayer(hidden_size, num_heads, dropout) for _ in range(num_layers)])
         self.norm = nn.LayerNorm(hidden_size)
         self.output_projection = nn.Linear(hidden_size, vocab_size)

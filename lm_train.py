@@ -56,91 +56,11 @@ parser.add_argument("--log_dir", help="Directory to save logs in", type=str, def
 
 parser.add_argument("--eval", help="Just evaluating, no training", action='store_true')
 
-
-# TP
-parser.add_argument('--seed', type=int,
-                    default=0xBADB1A5, metavar='SEED',
-                    help='random seed (default: 0xBADB1A5)')
-parser.add_argument('--module_name', type=str,
-                    default="numbers__place_value", metavar='NAME',
-                    help='module name (default: numbers__place_value)')
-parser.add_argument('--load_model', type=str, default="", metavar='S',
-                    help='Model to load (default: "")')
-parser.add_argument('--eval_mode', action='store_true',
-                    help="Don't write logs. (Default: False)")
-parser.add_argument('--n_steps', type=int,
-                    default=10000, metavar='N',
-                    help='maximum number of steps to train (default: 10000)')
-parser.add_argument('--max_strikes', type=int,
-                    default=1000, metavar='N',
-                    help='number of steps without eval loss improvement '
-                         'before exiting (default: 1000)')
-parser.add_argument('--log_every', type=int,
-                    default=50, metavar='N',
-                    help='after how many steps to log to terminal '
-                         'and tensorboard (default: 50)')
-parser.add_argument('--full_loader', action='store_true',
-                    help="Use full data loader instead of JIT loader "
-                         "(default: False)")
-parser.add_argument('--force_remove', action='store_true',
-                    help="Removes pre-existing log folders (default: False)")
-parser.add_argument('--force_reload', action='store_true',
-                    help="Load previous model if available. (Default: False)")
-parser.add_argument('--no_train', action='store_true',
-                    help="Don't start training. (Default: False)")
 parser.add_argument('--log_folder', type=str, default="log", metavar='S',
                     help='Log folder (default: "")')
-parser.add_argument('-s', '--log_suffix', type=str,
-                    default="", metavar='S',
-                    help='Additional log suffix (default: "")')
-# optimizer parameters
-parser.add_argument('-opt', '--optimizer', type=str,
-                    default="Adam", metavar='S',
-                    help='the sgd optimizer (default: "Adam")')
-parser.add_argument('--beta1', type=float,
-                    default=0.9, metavar='F',
-                    help='adam beta1 (default: 0.9)')
-parser.add_argument('--beta2', type=float,
-                    default=0.995, metavar='F',
-                    help='adam beta2 (default: 0.995)')
-parser.add_argument('-bs', type=int,
-                    default=256, metavar='N',
-                    help='batch size for train and test (default: 256)')
-parser.add_argument('--max_abs_grad_norm', type=float,
-                    default=0.1, metavar='F',
-                    help='max absolute gradient norm clip (default: 0.1)')
-parser.add_argument('--grad_accum_steps', type=int,
-                    default=1, metavar='N',
-                    help='gradient accumulation steps (default: 1)')
-# model parameters
-parser.add_argument('--dropout', type=float,
-                    default=0.0, metavar='PROB',
-                    help='dropout (default: 0.0)')
-parser.add_argument('--hidden', type=int,
-                    default=512, metavar='N',
-                    help='hidden size (default: 512)')
-parser.add_argument('-l', '--n_layers', type=int,
-                    default=6, metavar='N',
-                    help='number of transformer layers (default: 6)')
-parser.add_argument('-nh', '--n_heads', type=int,
-                    default=8, metavar='N',
-                    help='number of attention heads (default: 8)')
-parser.add_argument('-f', '--filter', type=int,
-                    default=2048, metavar='N',
-                    help='filter size (default: 2048)')
-parser.add_argument('-d_r', type=int,
-                    default=0, metavar='N',
-                    help='role size (default: 0)')
 
 args = parser.parse_args()
 log = setup_logger(args.log_folder)
-# module = DataLoader(module_name=args.module_name,
-#                     train_bs=args.batch_size,
-#                     eval_bs=args.batch_size,
-#                     device=device,
-#                     log=log)
-
-# args.PAD = module.source.vocab.stoi['<pad>']
 
 if not args.eval:
     model_name = args.model_name
@@ -185,7 +105,15 @@ if args.architecture == "GPT2":
     model = GPT2LMHeadModel(config).to(device)
 
 elif args.architecture == "LSTM":
-    model = RNNLM(rnn_type="LSTM", vocab_size=vocab_size, emb_size=args.n_embd, hidden_size=args.n_embd, n_layers=args.n_layer, dropout=0.1, tie_weights=True).to(device)
+    model = RNNLM(
+        rnn_type="LSTM",
+        vocab_size=vocab_size,
+        emb_size=args.n_embd,
+        hidden_size=args.n_embd,
+        n_layers=args.n_layer,
+        dropout=0.1,
+        tie_weights=True
+    ).to(device)
 
 elif args.architecture == "BERT":
     config = BertConfig(
@@ -200,7 +128,26 @@ elif args.architecture == "BERT":
     model = BertForMaskedLM(config).to(device)
 
 elif args.architecture == "TP":
-    model = TPDecoder(vocab_size=vocab_size, hidden_size=args.n_embd, num_layers=args.n_layer, num_heads=args.n_head, max_length=min(args.n_positions-10,100), dropout=0.1).to(device)
+    # TP transformer
+    model = TPDecoder(
+        vocab_size=vocab_size,
+        hidden_size=args.n_embd,
+        num_layers=args.n_layer,
+        num_heads=args.n_head,
+        max_length=min(args.n_positions-10,100),
+        dropout=0.1
+    ).to(device)
+
+elif args.architecture == "STD":
+    # Standard transformer
+    model = TransformerDecoder(
+        vocab_size=vocab_size,
+        hidden_size=args.n_embd,
+        num_layers=args.n_layer,
+        num_heads=args.n_head,
+        max_length=min(args.n_positions-10,100),
+        dropout=0.1
+    ).to(device)
 
 else:
     logging.info("Architecture not recognized")
