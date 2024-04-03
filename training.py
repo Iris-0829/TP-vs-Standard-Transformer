@@ -23,7 +23,8 @@ from lr_scheduler import *
 
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
-
+import matplotlib.pyplot as plt
+import datetime
 
 # Based closely on Hugging Face's Trainer class
 # This is for standard training (not meta-training)
@@ -61,6 +62,10 @@ class Trainer:
         self.log_every = log_every
         self.best_loss = math.inf
         self.save_dir = save_dir
+
+        # plot
+        self.train_losses = []
+        self.val_losses = []
 
 
     # Generator for the model's parameters that
@@ -162,6 +167,7 @@ class Trainer:
         avg_eval_loss = total_eval_loss / batch_index
         logging.info(name + " loss: " + str(avg_eval_loss))
         logging.info(name + " perplexity: " + str(math.exp(avg_eval_loss)))
+        self.val_losses.append(avg_eval_loss)
 
         # If the loss has improved, save the model weights
         if save and avg_eval_loss < self.best_loss:
@@ -226,7 +232,7 @@ class Trainer:
             # Reset the training set for the new epoch
             self.train_dataset.reset()
 
-            avg_tr_loss = 0
+            acc_tr_loss = 0
 
             # Loop over the training set
             for batch_index, batch in enumerate(self.train_dataset):
@@ -234,20 +240,22 @@ class Trainer:
                 # Evaluate and log, if applicable
                 if total_updates % self.eval_every == 0:
                     self.evaluate(save=True)
+                    avg_tr_loss = acc_tr_loss / self.log_every
+                    logging.info(f'Average training loss: {avg_tr_loss:.3f}')
+                    self.train_losses.append(avg_tr_loss / 10)
+                    acc_tr_loss = 0
 
                 if total_updates % self.log_every == 0:
                     logging.info(
                         "Training step " + str(total_updates) + " out of " + str(self.max_steps) + "; Epoch " + str(
                             epoch) + "; Learning rate: " + str(self.lr_scheduler.get_last_lr()[0]))
-                    logging.info(f'Average training loss: {avg_tr_loss:.2f}')
-                    avg_tr_loss = 0
 
                 total_batches += 1
 
                 # Compute the loss on one batch
                 collated_batch = self.data_collator(batch)
                 loss = self.training_step(self.model, collated_batch)
-                avg_tr_loss += loss
+                acc_tr_loss += loss
 
                 # Clip the norm of the gradient
                 if self.max_grad_norm is not None and self.max_grad_norm > 0:
@@ -266,6 +274,23 @@ class Trainer:
                 self.lr_scheduler.step()
 
                 total_updates += 1
+        self.plot_losses("plot")
+
+    def plot_losses(self, save_dir):
+        steps = [i * self.eval_every for i in range(len(self.train_losses))]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(steps, self.train_losses, label='Training Loss')
+        plt.plot(steps, self.val_losses, label='Validation Loss')
+        plt.xlabel('Training Steps')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.title('Training and Validation Loss')
+        os.makedirs(save_dir, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = os.path.join(save_dir, f'loss_plot_{timestamp}.png')
+        plt.savefig(save_path)
+        plt.close()
 
 
 # Trainer class for performing meta-training with MAML
