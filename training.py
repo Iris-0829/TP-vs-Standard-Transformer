@@ -226,6 +226,8 @@ class Trainer:
             # Reset the training set for the new epoch
             self.train_dataset.reset()
 
+            avg_tr_loss = 0
+
             # Loop over the training set
             for batch_index, batch in enumerate(self.train_dataset):
 
@@ -234,13 +236,18 @@ class Trainer:
                     self.evaluate(save=True)
 
                 if total_updates % self.log_every == 0:
-                    logging.info("Training step " + str(total_updates) + " out of " + str(self.max_steps) + "; Epoch " + str(epoch) + "; Learning rate: " + str(self.lr_scheduler.get_last_lr()[0]))
+                    logging.info(
+                        "Training step " + str(total_updates) + " out of " + str(self.max_steps) + "; Epoch " + str(
+                            epoch) + "; Learning rate: " + str(self.lr_scheduler.get_last_lr()[0]))
+                    logging.info(f'Average training loss: {avg_tr_loss:.2f}')
+                    avg_tr_loss = 0
 
                 total_batches += 1
 
                 # Compute the loss on one batch
                 collated_batch = self.data_collator(batch)
-                tr_loss += self.training_step(self.model, collated_batch)
+                loss = self.training_step(self.model, collated_batch)
+                avg_tr_loss += loss
 
                 # Clip the norm of the gradient
                 if self.max_grad_norm is not None and self.max_grad_norm > 0:

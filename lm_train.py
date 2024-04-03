@@ -60,7 +60,7 @@ parser.add_argument('--log_folder', type=str, default="log", metavar='S',
                     help='Log folder (default: "")')
 
 args = parser.parse_args()
-log = setup_logger(args.log_folder)
+# log = setup_logger(args.log_folder)
 
 if not args.eval:
     model_name = args.model_name
@@ -154,7 +154,7 @@ else:
 
 
 model_size = sum(t.numel() for t in model.parameters())
-logging.info(f"Model size: {model_size/1000**2:.1f}M parameters")
+logging.info(f"Model size: {model_size} parameters")
 
 data_collator = LMDataCollator(corpus.tokenizer, mlm=False)
 
