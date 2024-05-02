@@ -21,12 +21,12 @@ def copy_lines(source_file_path, target_dir, target_file_name, line_num):
 
 
 files_to_process = [
-    ('../babylm_preprocessed_10mtrain/train.txt', 'train.txt', 10000),
-    ('../babylm_preprocessed_10mtrain/valid.txt', 'valid.txt', 1000),
-    ('../babylm_preprocessed_10mtrain/test.txt', 'test.txt', 1000)
+    ('./babylm_preprocessed_10mtrain/train.txt', 'train.txt', 200000),
+    ('./babylm_preprocessed_10mtrain/valid.txt', 'valid.txt', 200000),
+    ('./babylm_preprocessed_10mtrain/test.txt', 'test.txt', 200000)
 ]
 
-target_dir = '.'
+target_dir = './babylm_1m'
 
 for source_file_path, target_file_name, num_lines in files_to_process:
     copy_lines(source_file_path, target_dir, target_file_name, num_lines)

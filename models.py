@@ -1,10 +1,8 @@
-
 import math
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -12,11 +10,11 @@ else:
     device = torch.device('cpu')
 
 
-
 class RNNLM(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
 
-    def __init__(self, rnn_type="LSTM", vocab_size=None, emb_size=None, hidden_size=None, n_layers=None, dropout=0.5, tie_weights=False, pad_token=None):
+    def __init__(self, rnn_type="LSTM", vocab_size=None, emb_size=None, hidden_size=None, n_layers=None, dropout=0.5,
+                 tie_weights=False, pad_token=None):
         super(RNNLM, self).__init__()
 
         self.pad_token = pad_token
@@ -30,7 +28,7 @@ class RNNLM(nn.Module):
             try:
                 nonlinearity = {'RNN_TANH': 'tanh', 'RNN_RELU': 'relu'}[rnn_type]
             except KeyError:
-                raise ValueError( """An invalid option for `--model` was supplied,
+                raise ValueError("""An invalid option for `--model` was supplied,
                                  options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
             self.rnn = nn.RNN(emb_size, hidden_size, n_layers, nonlinearity=nonlinearity, dropout=dropout)
         self.decoder = nn.Linear(hidden_size, vocab_size)
@@ -60,13 +58,13 @@ class RNNLM(nn.Module):
 
     def forward(self, max_loss=False, **inputs):
 
-        emb = self.drop(self.encoder(inputs["input_ids"].transpose(0,1)))
+        emb = self.drop(self.encoder(inputs["input_ids"].transpose(0, 1)))
         hidden = self.init_hidden(len(inputs["input_ids"]))
 
         output, hidden = self.rnn(emb, hidden)
         output = self.drop(output)
         decoded = self.decoder(output)
-        decoded = decoded.transpose(0,1)
+        decoded = decoded.transpose(0, 1)
 
         logits = decoded
 
@@ -83,7 +81,7 @@ class RNNLM(nn.Module):
                 loss_fct = nn.CrossEntropyLoss()
                 loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
 
-        return {"logits" : logits, "loss" : loss}
+        return {"logits": logits, "loss": loss}
 
     def init_hidden(self, bsz):
         weight = next(self.parameters())
@@ -99,17 +97,17 @@ class RNNLM(nn.Module):
         done = torch.zeros(batch_size).type(torch.uint8).to(device)
         sentence = input_ids
         for _ in range(60):
-            logits = self.forward(**{"input_ids" : sentence})["logits"]
+            logits = self.forward(**{"input_ids": sentence})["logits"]
             logits = logits[:, -1, :]
             sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-          
+
             cumulative_probs = torch.cumsum(nn.Softmax(dim=-1)(sorted_logits), dim=-1)
             sorted_indices_to_remove = cumulative_probs > top_p
             sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
             sorted_indices_to_remove[..., 0] = 0
             indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
             logits = logits.masked_fill(indices_to_remove, -1000000)
-          
+
             probabilities = F.softmax(logits, dim=-1)
             pred = torch.multinomial(probabilities, 1)
             pred[done != 0] = pad_token_id
@@ -151,13 +149,13 @@ class TPDecoder(nn.Module):
             return loss
         return output
 
-
     def create_attn_mask(self, input_ids):
         batch_size, seq_len = input_ids.size()
         attn_mask = torch.tril(torch.ones(seq_len, seq_len)).expand(batch_size, 1, seq_len, seq_len)
         return attn_mask.to(input_ids.device)
 
-    def generate(self, input_ids, do_sample=True, max_length=500, top_p=1.0, top_k=0, early_stopping=True, pad_token_id=None, eos_token_id=3):
+    def generate(self, input_ids, do_sample=True, max_length=500, top_p=1.0, top_k=0, early_stopping=True,
+                 pad_token_id=None, eos_token_id=3):
         with torch.no_grad():
             generated_ids = input_ids
 
@@ -257,6 +255,7 @@ class SelfAttention(nn.Module):
 
         return x
 
+
 # Embedding with Multilinear and Sinusoidal positional encoding
 class EmbeddingMultilinearSinusoidal(nn.Module):
     def __init__(self, d_vocab, d_x, dropout, max_length):
@@ -314,10 +313,11 @@ class EmbeddingMultilinearSinusoidal(nn.Module):
     def reset_parameters(self):
         nn.init.normal_(self.tok_embedding.weight,
                         mean=0,
-                        std=1./math.sqrt(self.d_x))
+                        std=1. / math.sqrt(self.d_x))
         nn.init.normal_(self.linear.weight,
                         mean=0,
-                        std=1./math.sqrt(self.d_x))
+                        std=1. / math.sqrt(self.d_x))
+
 
 # Feedforward layer
 class PositionwiseFeedforward(nn.Module):
@@ -345,7 +345,8 @@ class TransformerDecoder(nn.Module):
         self.max_length = max_length
 
         self.word_embeddings = EmbeddingMultilinearSinusoidal(vocab_size, hidden_size, dropout, max_length=200)
-        self.layers = nn.ModuleList([TransformerDecoderLayer(hidden_size, num_heads, dropout) for _ in range(num_layers)])
+        self.layers = nn.ModuleList(
+            [TransformerDecoderLayer(hidden_size, num_heads, dropout) for _ in range(num_layers)])
         self.norm = nn.LayerNorm(hidden_size)
         self.output_projection = nn.Linear(hidden_size, vocab_size)
 
@@ -390,7 +391,8 @@ class TransformerDecoder(nn.Module):
 
                 # Apply top-k and top-p filtering
                 if top_k > 0:
-                    top_k = min(top_k, next_token_logits.size(-1))  # Adjust top_k if it's greater than the vocabulary size
+                    top_k = min(top_k,
+                                next_token_logits.size(-1))  # Adjust top_k if it's greater than the vocabulary size
                     topk_logits, topk_indices = torch.topk(next_token_logits, top_k, dim=-1)
                     next_token_logits[next_token_logits < topk_logits[..., -1, None]] = -float('inf')
 
